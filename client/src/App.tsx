@@ -1,7 +1,16 @@
-import SignIn from './components/SignIn/SignIn';
+import { Routes, Route } from 'react-router-dom';
+import SignUp from '@/components/SignUp/SignUp';
+import ChatRoom from '@/components/ChatRoom/ChatRoom';
+import Login from '@/components/Login/Login';
 
 function App() {
-  return <SignIn />;
+  return (
+    <Routes>
+      <Route path='/' element={<Login />} />
+      <Route path='/signup' element={<SignUp />} />
+      <Route path='/chat' element={<ChatRoom />} />
+    </Routes>
+  );
 }
 
 export default App;
