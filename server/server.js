@@ -157,16 +157,18 @@ sockjs.on("connection", (conn) => {
   conn.on("data", (message) => {
     try {
       const frame = message.toString();
-      const [command, ...headers] = frame.split("\n");
-      const headerMap = {};
+      console.log("받은 프레임:", frame);
 
-      for (const header of headers) {
-        if (header.trim() === "") break;
-        const [key, value] = header.split(":");
-        headerMap[key] = value;
-      }
+      if (frame.startsWith("CONNECT")) {
+        const headers = frame.split("\n").slice(1);
+        const headerMap = {};
 
-      if (command.startsWith("CONNECT")) {
+        for (const header of headers) {
+          if (header.trim() === "") break;
+          const [key, value] = header.split(":");
+          headerMap[key] = value;
+        }
+
         userId = headerMap["login"] || Date.now().toString();
         clients.set(userId, conn);
         console.log(`✅ Client connected: ${userId}`);
@@ -174,25 +176,56 @@ sockjs.on("connection", (conn) => {
         conn.write(
           "CONNECTED\n" + "version:1.2\n" + "heart-beat:0,0\n" + "\n\0"
         );
-      } else if (command.startsWith("SEND")) {
+      } else if (frame.startsWith("SEND")) {
+        const lines = frame.split("\n");
+        const headers = lines.slice(1);
+        const headerMap = {};
+
+        let bodyStartIndex = 0;
+        for (let i = 0; i < headers.length; i++) {
+          if (headers[i].trim() === "") {
+            bodyStartIndex = i + 1;
+            break;
+          }
+          const [key, value] = headers[i].split(":");
+          headerMap[key] = value;
+        }
+
         const destination = headerMap["destination"];
-        const messageBody = frame.split("\n\n")[1];
+        const messageBody = lines
+          .slice(bodyStartIndex)
+          .join("\n")
+          .replace(/\0/g, "")
+          .trim();
+
+        if (!messageBody) {
+          console.error("메시지 본문이 없습니다.");
+          return;
+        }
 
         try {
-          const messageData = JSON.parse(messageBody);
+          // 메시지 본문에서 JSON 부분만 추출
+          const jsonMatch = messageBody.match(/\{.*\}/);
+          if (!jsonMatch) {
+            throw new Error("JSON 형식이 아닙니다.");
+          }
+
+          const messageData = JSON.parse(jsonMatch[0]);
+          console.log("메시지 데이터:", messageData);
 
           // 수신자에게 메시지 전달
           const receiver = clients.get(destination);
           if (receiver) {
-            receiver.write(
+            const responseFrame =
               "MESSAGE\n" +
-                `destination:/sub/chat/private/${destination}\n` +
-                `message-id:${Date.now()}\n` +
-                "content-type:application/json\n" +
-                "\n" +
-                messageBody +
-                "\0"
-            );
+              `destination:/sub/chat/private/${destination}\n` +
+              `message-id:${Date.now()}\n` +
+              "content-type:application/json\n" +
+              "\n" +
+              JSON.stringify(messageData) +
+              "\0";
+
+            receiver.write(responseFrame);
             console.log(
               `📨 Message sent from ${messageData.senderId} to ${destination}`
             );
