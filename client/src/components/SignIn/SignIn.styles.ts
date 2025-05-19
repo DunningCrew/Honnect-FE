@@ -1,33 +1,45 @@
 import styled from 'styled-components';
 
 export const SignInContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
   min-height: 100vh;
   background-color: #f5f5f5;
 `;
 
 export const WelcomeContainer = styled.div`
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  position: relative;
+  width: 100%;
+  height: 100vh;
 `;
 
-export const WelcomeMessage = styled.h1`
-  color: #333;
-  margin-bottom: 2rem;
+export const WelcomeMessage = styled.div`
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  padding: 8px 16px;
+  background-color: #e3f2fd;
+  color: #1976d2;
+  border-radius: 4px;
+  font-size: 1rem;
+  z-index: 1000;
 `;
 
 export const LogoutButton = styled.button`
-  padding: 0.75rem 1.5rem;
-  background-color: #e74c3c;
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  padding: 8px 16px;
+  background-color: #f44336;
   color: white;
   border: none;
   border-radius: 4px;
-  font-size: 1rem;
   cursor: pointer;
-  transition: background-color 0.2s;
+  font-size: 0.9rem;
+  z-index: 1000;
 
   &:hover {
-    background-color: #c0392b;
+    background-color: #d32f2f;
   }
 `;
