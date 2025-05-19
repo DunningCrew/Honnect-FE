@@ -1,4 +1,4 @@
-import SOCKJS from 'sockjs-client';
+import SockJS from 'sockjs-client';
 import { Stomp, CompatClient } from '@stomp/stompjs';
 import { useEffect, useRef, useState } from 'react';
 
@@ -19,7 +19,7 @@ const WebSocketClient = () => {
     if (userId) {
       // SockJS 클라이언트 생성 함수
       const createSocket = () => {
-        return new SOCKJS('http://localhost:8080/ws');
+        return new SockJS('http://localhost:8080/ws');
       };
 
       const stompClient = Stomp.over(createSocket);
@@ -52,7 +52,6 @@ const WebSocketClient = () => {
         },
       );
 
-      // 자동 재연결 설정
       stompClient.reconnect_delay = 5000; // 5초 후 재연결 시도
       stompClient.heartbeat.outgoing = 10000; // 10초마다 heartbeat 전송
       stompClient.heartbeat.incoming = 10000; // 10초마다 heartbeat 수신 대기
