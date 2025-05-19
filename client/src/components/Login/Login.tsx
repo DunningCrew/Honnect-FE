@@ -5,60 +5,62 @@ import * as S from './Login.styles';
 interface User {
   id: string;
   username: string;
+  password?: string;
+}
+
+interface SignUpUser {
+  username: string;
   password: string;
 }
 
 interface LoginProps {
   onLogin: (user: User) => void;
-  onSignUp: (user: User) => void;
+  onSignUp: (user: SignUpUser) => void;
   isSignUp: boolean;
   setIsSignUp: (value: boolean) => void;
 }
 
-const LoginForm = ({
-  onLogin,
-  onSignUp,
-  isSignUp,
-  setIsSignUp,
-}: LoginProps) => {
+const API_BASE_URL = 'http://localhost:8080/api';
+
+const LoginForm = ({ onLogin, isSignUp, setIsSignUp }: LoginProps) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!isSignUp) {
-      // 로그인 로직
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      const user = users.find(
-        (u: User) => u.username === username && u.password === password,
+    if (!username.trim() || !password.trim()) {
+      setError('아이디와 비밀번호를 모두 입력해주세요.');
+      return;
+    }
+
+    try {
+      if (!isSignUp) {
+        const response = await fetch(`${API_BASE_URL}/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ username, password }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || '로그인에 실패했습니다.');
+        }
+
+        onLogin(data);
+        setUsername('');
+        setPassword('');
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.',
       );
-
-      if (user) {
-        onLogin(user);
-      } else {
-        setError('아이디 또는 비밀번호가 일치하지 않습니다.');
-      }
-    } else {
-      // 회원가입 로직
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-
-      if (users.some((u: User) => u.username === username)) {
-        setError('이미 사용 중인 아이디입니다.');
-        return;
-      }
-
-      const newUser: User = {
-        id: Date.now().toString(),
-        username,
-        password,
-      };
-
-      onSignUp(newUser);
-      setUsername('');
-      setPassword('');
+      console.error('인증 실패:', err);
     }
   };
 
