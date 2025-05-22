@@ -8,20 +8,31 @@ export const ChatContainer = styled.div`
 
 export const UserList = styled.div`
   width: 250px;
+  padding: 20px;
   background-color: white;
   border-right: 1px solid #e0e0e0;
-  padding: 20px;
   overflow-y: auto;
 `;
 
-export const UserItem = styled.div<{ selected: boolean }>`
+export const ConnectionStatus = styled.div<{ connected: boolean }>`
+  padding: 8px;
+  margin-bottom: 16px;
+  border-radius: 4px;
+  text-align: center;
+  background-color: ${({ connected }) => (connected ? '#4caf50' : '#f44336')};
+  color: white;
+`;
+
+export const UserItem = styled.div`
   padding: 10px;
   margin: 5px 0;
-  cursor: pointer;
   border-radius: 4px;
-  background-color: ${(props) => (props.selected ? '#e3f2fd' : 'transparent')};
+  cursor: pointer;
+  background-color: #f5f5f5;
+  transition: background-color 0.2s;
+
   &:hover {
-    background-color: #f5f5f5;
+    background-color: #e0e0e0;
   }
 `;
 
@@ -44,22 +55,28 @@ export const MessageList = styled.div`
 export const MessageItem = styled.div<{ isMine: boolean }>`
   display: flex;
   flex-direction: column;
-  align-items: ${(props) => (props.isMine ? 'flex-end' : 'flex-start')};
-  margin: 10px 0;
+  align-items: ${({ isMine }) => (isMine ? 'flex-end' : 'flex-start')};
+  margin-bottom: 10px;
+`;
+
+export const MessageSender = styled.div`
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 4px;
 `;
 
 export const MessageContent = styled.div`
+  padding: 10px;
+  border-radius: 8px;
   background-color: #e3f2fd;
-  padding: 10px 15px;
-  border-radius: 15px;
   max-width: 70%;
-  word-wrap: break-word;
+  word-break: break-word;
 `;
 
 export const MessageTime = styled.div`
-  font-size: 0.8rem;
-  color: #666;
-  margin-top: 5px;
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
 `;
 
 export const InputArea = styled.div`
@@ -74,11 +91,11 @@ export const InputArea = styled.div`
     padding: 10px;
     border: 1px solid #e0e0e0;
     border-radius: 4px;
-    font-size: 1rem;
+    font-size: 14px;
 
-    &:disabled {
-      background-color: #f5f5f5;
-      cursor: not-allowed;
+    &:focus {
+      outline: none;
+      border-color: #2196f3;
     }
   }
 
@@ -89,50 +106,27 @@ export const InputArea = styled.div`
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 1rem;
+    transition: background-color 0.2s;
 
-    &:disabled {
-      background-color: #90caf9;
-      cursor: not-allowed;
+    &:hover {
+      background-color: #1976d2;
     }
 
-    &:hover:not(:disabled) {
-      background-color: #1976d2;
+    &:disabled {
+      background-color: #bdbdbd;
+      cursor: not-allowed;
     }
   }
 `;
 
-export const NoChatSelected = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  color: #666;
-  font-size: 1.2rem;
-`;
-
-export const ConnectionStatus = styled.div<{ connected: boolean }>`
-  padding: 8px 12px;
-  margin-bottom: 15px;
-  border-radius: 4px;
-  text-align: center;
-  font-size: 0.9rem;
-  background-color: ${(props) => (props.connected ? '#e8f5e9' : '#ffebee')};
-  color: ${(props) => (props.connected ? '#2e7d32' : '#c62828')};
-`;
-
 export const LoadingMessage = styled.div`
-  padding: 10px;
   text-align: center;
   color: #666;
-  font-size: 0.9rem;
+  padding: 20px;
 `;
 
 export const ErrorMessage = styled.div`
-  padding: 10px;
   text-align: center;
-  color: #c62828;
-  font-size: 0.9rem;
-  background-color: #ffebee;
-  border-radius: 4px;
+  color: #f44336;
+  padding: 20px;
 `;
