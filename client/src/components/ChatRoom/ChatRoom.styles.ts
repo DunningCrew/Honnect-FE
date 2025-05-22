@@ -57,6 +57,7 @@ export const MessageItem = styled.div<{ isMine: boolean }>`
   flex-direction: column;
   align-items: ${({ isMine }) => (isMine ? 'flex-end' : 'flex-start')};
   margin-bottom: 10px;
+  width: 100%;
 `;
 
 export const MessageSender = styled.div`
@@ -65,12 +66,14 @@ export const MessageSender = styled.div`
   margin-bottom: 4px;
 `;
 
-export const MessageContent = styled.div`
+export const MessageContent = styled.div<{ isMine: boolean }>`
   padding: 10px;
   border-radius: 8px;
-  background-color: #e3f2fd;
+  background-color: ${({ isMine }) => (isMine ? '#e3f2fd' : '#f5f5f5')};
   max-width: 70%;
   word-break: break-word;
+  color: #000;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 `;
 
 export const MessageTime = styled.div`
