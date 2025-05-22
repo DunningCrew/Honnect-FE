@@ -5,9 +5,8 @@ import SockJS from "sockjs";
 
 const app = express();
 
-// CORS 설정 상세화
 const corsOptions = {
-  origin: ["http://localhost:3000", "http://localhost:5173"], // 클라이언트 주소 추가
+  origin: ["http://localhost:3000", "http://localhost:5173"],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
@@ -17,27 +16,21 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// 요청 로깅 미들웨어
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.url}`, req.body);
   next();
 });
 
-// 메모리에 사용자 목록 저장 (실제로는 데이터베이스 사용)
 const users = new Map();
 
-// 서버 시작 시 사용자 목록 초기화
-console.log("서버 시작: 사용자 목록 초기화");
 users.clear();
 
-// 사용자 목록 초기화 API (테스트용)
 app.post("/api/reset", (req, res) => {
   users.clear();
   console.log("사용자 목록 초기화 완료");
   res.json({ message: "사용자 목록이 초기화되었습니다." });
 });
 
-// 로그인 API
 app.post("/api/login", (req, res) => {
   try {
     console.log("로그인 요청:", req.body);
@@ -81,34 +74,24 @@ app.get("/api/users", (req, res) => {
   }
 });
 
-// 사용자 등록 API
+// 회원가입 API
 app.post("/api/users", (req, res) => {
   try {
-    console.log("회원가입 요청:", req.body);
     const { username, password } = req.body;
 
     if (!username || !password) {
-      console.log("필수 필드 누락:", { username, password });
       return res.status(400).json({
         error: "사용자 이름과 비밀번호가 필요합니다.",
       });
     }
 
-    // 현재 등록된 사용자 목록 로깅
     const currentUsers = Array.from(users.values());
-    console.log("현재 등록된 사용자 수:", currentUsers.length);
-    console.log("현재 등록된 사용자 목록:", currentUsers);
-
-    // 이미 존재하는 사용자인지 확인
     const existingUser = currentUsers.find(
       (user) => user.username === username
     );
 
-    console.log("입력된 사용자 이름:", username);
-    console.log("기존 사용자와 비교:", existingUser);
-
     if (existingUser) {
-      console.log("중복 사용자 발견:", existingUser);
+      console.log("중복 사용자 발견:", existingUser.username);
       return res
         .status(400)
         .json({ error: "이미 사용 중인 사용자 이름입니다." });
@@ -125,7 +108,7 @@ app.post("/api/users", (req, res) => {
       id: newUser.id,
       username: newUser.username,
     });
-    console.log("회원가입 후 사용자 수:", users.size);
+
     res.status(201).json({ id: newUser.id, username: newUser.username });
   } catch (error) {
     console.error("회원가입 실패:", error);
@@ -133,13 +116,11 @@ app.post("/api/users", (req, res) => {
   }
 });
 
-// 404 처리
 app.use((req, res) => {
   console.log("404 Not Found:", req.method, req.url);
   res.status(404).json({ error: "요청한 API를 찾을 수 없습니다." });
 });
 
-// 에러 처리
 app.use((err, req, res, next) => {
   console.error("서버 에러:", err);
   res.status(500).json({ error: "서버에서 오류가 발생했습니다." });
@@ -172,6 +153,7 @@ sockjs.on("connection", (conn) => {
         userId = headerMap["login"] || Date.now().toString();
         clients.set(userId, conn);
         console.log(`✅ Client connected: ${userId}`);
+        console.log("현재 연결된 클라이언트:", [...clients.keys()]);
 
         conn.write(
           "CONNECTED\n" + "version:1.2\n" + "heart-beat:0,0\n" + "\n\0"
@@ -191,7 +173,6 @@ sockjs.on("connection", (conn) => {
           headerMap[key] = value;
         }
 
-        const destination = headerMap["destination"];
         const messageBody = lines
           .slice(bodyStartIndex)
           .join("\n")
@@ -204,7 +185,6 @@ sockjs.on("connection", (conn) => {
         }
 
         try {
-          // 메시지 본문에서 JSON 부분만 추출
           const jsonMatch = messageBody.match(/\{.*\}/);
           if (!jsonMatch) {
             throw new Error("JSON 형식이 아닙니다.");
@@ -213,25 +193,28 @@ sockjs.on("connection", (conn) => {
           const messageData = JSON.parse(jsonMatch[0]);
           console.log("메시지 데이터:", messageData);
 
-          // 수신자에게 메시지 전달
-          const receiver = clients.get(destination);
-          if (receiver) {
+          // 모든 클라이언트에게 메시지 전달
+          const messageWithSender = {
+            ...messageData,
+            senderId: userId,
+          };
+
+          console.log("전송할 메시지:", messageWithSender);
+          console.log("연결된 클라이언트 수:", clients.size);
+
+          clients.forEach((client, clientId) => {
             const responseFrame =
               "MESSAGE\n" +
-              `destination:/sub/chat/private/${destination}\n` +
+              `destination:/sub/chat/room\n` +
               `message-id:${Date.now()}\n` +
               "content-type:application/json\n" +
               "\n" +
-              JSON.stringify(messageData) +
+              JSON.stringify(messageWithSender) +
               "\0";
 
-            receiver.write(responseFrame);
-            console.log(
-              `📨 Message sent from ${messageData.senderId} to ${destination}`
-            );
-          } else {
-            console.log(`❌ Receiver ${destination} not found`);
-          }
+            client.write(responseFrame);
+            console.log(`📨 Message sent to ${clientId}`);
+          });
         } catch (parseError) {
           console.error("메시지 파싱 실패:", parseError);
           console.log("원본 메시지:", messageBody);
@@ -247,6 +230,7 @@ sockjs.on("connection", (conn) => {
     if (userId) {
       clients.delete(userId);
       console.log(`❌ Client disconnected: ${userId}`);
+      console.log("남은 클라이언트:", [...clients.keys()]);
     }
   });
 });
