@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import WebSocketClient from '../WebSocket/WebSocket';
-import type { ChatMessage } from '../WebSocket/WebSocket';
+import { API_BASE_URL } from '@/constants/apiUrl';
 import * as S from './ChatRoom.styles';
 
 interface User {
@@ -8,11 +8,8 @@ interface User {
   username: string;
 }
 
-const API_BASE_URL = 'http://localhost:8080/api';
-
 const ChatRoom = () => {
   const [message, setMessage] = useState('');
-  const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +24,7 @@ const ChatRoom = () => {
         if (!response.ok) {
           throw new Error('사용자 목록을 가져오는데 실패했습니다.');
         }
+
         const userList = await response.json();
         setUsers(userList);
       } catch (err) {
@@ -45,8 +43,8 @@ const ChatRoom = () => {
   }, []);
 
   const handleSendMessage = () => {
-    if (message.trim() === '' || !selectedUser) return;
-    sendMessage(selectedUser, message);
+    if (message.trim() === '') return;
+    sendMessage(message);
     setMessage('');
   };
 
@@ -54,13 +52,7 @@ const ChatRoom = () => {
     return new Date(timestamp).toLocaleTimeString();
   };
 
-  const filteredMessages: ChatMessage[] = messages.filter(
-    (msg) =>
-      (msg.senderId === sessionStorage.getItem('userId') &&
-        msg.receiverId === selectedUser) ||
-      (msg.senderId === selectedUser &&
-        msg.receiverId === sessionStorage.getItem('userId')),
-  );
+  const userId = sessionStorage.getItem('userId');
 
   return (
     <S.ChatContainer>
@@ -68,55 +60,46 @@ const ChatRoom = () => {
         <S.ConnectionStatus connected={isConnected}>
           {isConnected ? '연결됨' : '연결 끊김'}
         </S.ConnectionStatus>
-        <h3>사용자 목록</h3>
+        <h3>접속 중인 사용자</h3>
         {isLoading ? (
           <S.LoadingMessage>사용자 목록 로딩 중...</S.LoadingMessage>
         ) : error ? (
           <S.ErrorMessage>{error}</S.ErrorMessage>
         ) : (
           users.map((user) => (
-            <S.UserItem
-              key={user.id}
-              selected={user.id === selectedUser}
-              onClick={() => setSelectedUser(user.id)}
-            >
-              {user.username}
-            </S.UserItem>
+            <S.UserItem key={user.id}>{user.username}</S.UserItem>
           ))
         )}
       </S.UserList>
 
       <S.ChatArea>
-        {selectedUser ? (
-          <>
-            <S.MessageList>
-              {filteredMessages.map((msg, index) => (
-                <S.MessageItem
-                  key={index}
-                  isMine={msg.senderId === sessionStorage.getItem('userId')}
-                >
-                  <S.MessageContent>{msg.content}</S.MessageContent>
-                  <S.MessageTime>{formatTime(msg.timestamp)}</S.MessageTime>
-                </S.MessageItem>
-              ))}
-            </S.MessageList>
-            <S.InputArea>
-              <input
-                type='text'
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                placeholder='메시지를 입력하세요'
-                disabled={!isConnected}
-              />
-              <button onClick={handleSendMessage} disabled={!isConnected}>
-                전송
-              </button>
-            </S.InputArea>
-          </>
-        ) : (
-          <S.NoChatSelected>채팅할 사용자를 선택해주세요</S.NoChatSelected>
-        )}
+        <S.MessageList>
+          {messages.map((msg, index) => (
+            <S.MessageItem key={index} isMine={msg.senderId === userId}>
+              <S.MessageSender>
+                {msg.senderId === userId
+                  ? '나'
+                  : users.find((u) => u.id === msg.senderId)?.username ||
+                    '알 수 없음'}
+              </S.MessageSender>
+              <S.MessageContent>{msg.content}</S.MessageContent>
+              <S.MessageTime>{formatTime(msg.timestamp)}</S.MessageTime>
+            </S.MessageItem>
+          ))}
+        </S.MessageList>
+        <S.InputArea>
+          <input
+            type='text'
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+            placeholder='메시지를 입력하세요'
+            disabled={!isConnected}
+          />
+          <button onClick={handleSendMessage} disabled={!isConnected}>
+            전송
+          </button>
+        </S.InputArea>
       </S.ChatArea>
     </S.ChatContainer>
   );
