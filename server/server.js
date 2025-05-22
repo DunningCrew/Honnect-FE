@@ -22,7 +22,6 @@ app.use((req, res, next) => {
 });
 
 const users = new Map();
-
 users.clear();
 
 app.post("/api/reset", (req, res) => {
@@ -33,26 +32,20 @@ app.post("/api/reset", (req, res) => {
 
 app.post("/api/login", (req, res) => {
   try {
-    console.log("로그인 요청:", req.body);
     const { username, password } = req.body;
-
     if (!username || !password) {
-      return res.status(400).json({
-        error: "사용자 이름과 비밀번호가 필요합니다.",
-      });
+      return res
+        .status(400)
+        .json({ error: "사용자 이름과 비밀번호가 필요합니다." });
     }
-
     const user = Array.from(users.values()).find(
       (u) => u.username === username && u.password === password
     );
-
     if (!user) {
-      return res.status(401).json({
-        error: "사용자 이름 또는 비밀번호가 일치하지 않습니다.",
-      });
+      return res
+        .status(401)
+        .json({ error: "사용자 이름 또는 비밀번호가 일치하지 않습니다." });
     }
-
-    console.log("로그인 성공:", { id: user.id, username: user.username });
     res.json({ id: user.id, username: user.username });
   } catch (error) {
     console.error("로그인 실패:", error);
@@ -60,7 +53,6 @@ app.post("/api/login", (req, res) => {
   }
 });
 
-// 사용자 목록 API
 app.get("/api/users", (req, res) => {
   try {
     const userList = Array.from(users.values()).map((user) => ({
@@ -74,41 +66,24 @@ app.get("/api/users", (req, res) => {
   }
 });
 
-// 회원가입 API
 app.post("/api/users", (req, res) => {
   try {
     const { username, password } = req.body;
-
     if (!username || !password) {
-      return res.status(400).json({
-        error: "사용자 이름과 비밀번호가 필요합니다.",
-      });
+      return res
+        .status(400)
+        .json({ error: "사용자 이름과 비밀번호가 필요합니다." });
     }
-
-    const currentUsers = Array.from(users.values());
-    const existingUser = currentUsers.find(
+    const existingUser = Array.from(users.values()).find(
       (user) => user.username === username
     );
-
     if (existingUser) {
-      console.log("중복 사용자 발견:", existingUser.username);
       return res
         .status(400)
         .json({ error: "이미 사용 중인 사용자 이름입니다." });
     }
-
-    const newUser = {
-      id: Date.now().toString(),
-      username,
-      password,
-    };
-
+    const newUser = { id: Date.now().toString(), username, password };
     users.set(newUser.id, newUser);
-    console.log("회원가입 성공:", {
-      id: newUser.id,
-      username: newUser.username,
-    });
-
     res.status(201).json({ id: newUser.id, username: newUser.username });
   } catch (error) {
     console.error("회원가입 실패:", error);
@@ -131,6 +106,7 @@ const sockjs = SockJS.createServer({ prefix: "/ws" });
 sockjs.installHandlers(server, { prefix: "/ws" });
 
 const clients = new Map();
+const subscriptions = new Map();
 
 sockjs.on("connection", (conn) => {
   let userId = null;
@@ -138,31 +114,39 @@ sockjs.on("connection", (conn) => {
   conn.on("data", (message) => {
     try {
       const frame = message.toString();
-      console.log("받은 프레임:", frame);
+      console.log("\uD83D\uDCDD 받은 프레임:", frame);
+      const frameType = frame.split(/\r?\n/)[0].trim().toUpperCase();
 
-      if (frame.startsWith("CONNECT")) {
+      if (frameType === "CONNECT") {
         const headers = frame.split("\n").slice(1);
         const headerMap = {};
-
         for (const header of headers) {
           if (header.trim() === "") break;
           const [key, value] = header.split(":");
           headerMap[key] = value;
         }
-
         userId = headerMap["login"] || Date.now().toString();
         clients.set(userId, conn);
-        console.log(`✅ Client connected: ${userId}`);
-        console.log("현재 연결된 클라이언트:", [...clients.keys()]);
-
-        conn.write(
-          "CONNECTED\n" + "version:1.2\n" + "heart-beat:0,0\n" + "\n\0"
-        );
-      } else if (frame.startsWith("SEND")) {
+        conn.write("CONNECTED\nversion:1.2\nheart-beat:0,0\n\n\0");
+      } else if (frameType === "SUBSCRIBE") {
+        const headers = frame.split(/\r?\n/).slice(1);
+        const headerMap = {};
+        for (const header of headers) {
+          if (header.trim() === "") break;
+          const [key, value] = header.split(":");
+          headerMap[key] = value;
+        }
+        const destination = headerMap["destination"];
+        if (!destination) return;
+        if (!subscriptions.has(destination)) {
+          subscriptions.set(destination, new Set());
+        }
+        subscriptions.get(destination).add(conn);
+        console.log(`\uD83D\uDCD1 구독 완료: ${destination}`);
+      } else if (frameType === "SEND") {
         const lines = frame.split("\n");
         const headers = lines.slice(1);
         const headerMap = {};
-
         let bodyStartIndex = 0;
         for (let i = 0; i < headers.length; i++) {
           if (headers[i].trim() === "") {
@@ -172,65 +156,38 @@ sockjs.on("connection", (conn) => {
           const [key, value] = headers[i].split(":");
           headerMap[key] = value;
         }
-
+        const destination = headerMap["destination"];
         const messageBody = lines
           .slice(bodyStartIndex)
           .join("\n")
           .replace(/\0/g, "")
           .trim();
-
-        if (!messageBody) {
-          console.error("메시지 본문이 없습니다.");
-          return;
-        }
-
-        try {
-          const jsonMatch = messageBody.match(/\{.*\}/);
-          if (!jsonMatch) {
-            throw new Error("JSON 형식이 아닙니다.");
-          }
-
-          const messageData = JSON.parse(jsonMatch[0]);
-          console.log("메시지 데이터:", messageData);
-
-          // 모든 클라이언트에게 메시지 전달
-          const messageWithSender = {
-            ...messageData,
-            senderId: userId,
-          };
-
-          console.log("전송할 메시지:", messageWithSender);
-          console.log("연결된 클라이언트 수:", clients.size);
-
-          clients.forEach((client, clientId) => {
-            const responseFrame =
-              "MESSAGE\n" +
-              `destination:/sub/chat/room\n` +
-              `message-id:${Date.now()}\n` +
-              "content-type:application/json\n" +
-              "\n" +
-              JSON.stringify(messageWithSender) +
-              "\0";
-
-            client.write(responseFrame);
-            console.log(`📨 Message sent to ${clientId}`);
-          });
-        } catch (parseError) {
-          console.error("메시지 파싱 실패:", parseError);
-          console.log("원본 메시지:", messageBody);
+        const messageData = JSON.parse(messageBody.match(/\{.*\}/)[0]);
+        const messageWithSender = { ...messageData, senderId: userId };
+        const targets = subscriptions.get(destination) || new Set();
+        for (const client of targets) {
+          const responseFrame =
+            "MESSAGE\n" +
+            `destination:${destination}\n` +
+            `message-id:${Date.now()}\n` +
+            `subscription:sub-0\n` + // ✅ 추가: 구독 ID와 매칭
+            "content-type:application/json\n\n" +
+            JSON.stringify(messageWithSender) +
+            "\0";
+          client.write(responseFrame);
         }
       }
     } catch (error) {
-      console.error("메시지 처리 중 오류 발생:", error);
-      console.log("원본 프레임:", message.toString());
+      console.error("\u274C 메시지 처리 중 오류 발생:", error);
     }
   });
 
   conn.on("close", () => {
     if (userId) {
       clients.delete(userId);
-      console.log(`❌ Client disconnected: ${userId}`);
-      console.log("남은 클라이언트:", [...clients.keys()]);
+      for (const subs of subscriptions.values()) {
+        subs.delete(conn);
+      }
     }
   });
 });
