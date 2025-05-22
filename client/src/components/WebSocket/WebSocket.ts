@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 
 export interface ChatMessage {
   senderId: string;
-  receiverId: string;
   content: string;
   timestamp: number;
 }
@@ -17,13 +16,11 @@ const WebSocketClient = () => {
   useEffect(() => {
     const userId = sessionStorage.getItem('userId');
     if (userId) {
-      // SockJS 클라이언트 생성 함수
       const createSocket = () => {
         return new SockJS('http://localhost:8080/ws');
       };
 
       const stompClient = Stomp.over(createSocket);
-      stompClient.debug = () => {};
 
       const connectHeaders = {
         'heart-beat': '10000,10000',
@@ -32,18 +29,31 @@ const WebSocketClient = () => {
         login: userId,
       };
 
-      // 연결 설정
       stompClient.connect(
         connectHeaders,
         () => {
-          client.current = stompClient;
           setIsConnected(true);
           console.log('✅ WebSocket 연결 성공');
+          console.log('✅ 현재 로그인된 유저 ID:', userId);
+          client.current = stompClient;
 
-          // 개인 메시지 구독
-          client.current.subscribe(`/sub/chat/private/${userId}`, (message) => {
-            const receivedMessage = JSON.parse(message.body);
-            setMessages((prev) => [...prev, receivedMessage]);
+          // 공통 채팅방 구독
+          client.current.subscribe('/sub/chat/room', (message) => {
+            console.log('📥 [subscribe] 공통 채팅방 메시지 수신');
+            console.log('수신된 메시지:', message.body);
+
+            try {
+              const receivedMessage = JSON.parse(message.body);
+              console.log('✅ 파싱된 메시지:', receivedMessage);
+
+              setMessages((prev) => {
+                const next = [...prev, receivedMessage];
+                console.log('✅ 메시지 스택 상태:', next);
+                return next;
+              });
+            } catch (error) {
+              console.error('메시지 파싱 오류:', error);
+            }
           });
         },
         (error: unknown) => {
@@ -52,9 +62,9 @@ const WebSocketClient = () => {
         },
       );
 
-      stompClient.reconnect_delay = 5000; // 5초 후 재연결 시도
-      stompClient.heartbeat.outgoing = 10000; // 10초마다 heartbeat 전송
-      stompClient.heartbeat.incoming = 10000; // 10초마다 heartbeat 수신 대기
+      stompClient.reconnect_delay = 5000;
+      stompClient.heartbeat.outgoing = 10000;
+      stompClient.heartbeat.incoming = 10000;
 
       return () => {
         if (client.current) {
@@ -65,20 +75,21 @@ const WebSocketClient = () => {
     }
   }, []);
 
-  const sendMessage = (receiverId: string, content: string) => {
+  const sendMessage = (content: string) => {
     if (client.current && isConnected) {
+      const userId = sessionStorage.getItem('userId') || '';
       const message: ChatMessage = {
-        senderId: sessionStorage.getItem('userId') || '',
-        receiverId,
+        senderId: userId,
         content,
         timestamp: Date.now(),
       };
 
+      console.log('전송할 메시지:', message);
+
       client.current.send(
-        '/pub/chat/private',
+        '/pub/chat/message',
         {
           'content-type': 'application/json',
-          destination: receiverId,
         },
         JSON.stringify(message),
       );
