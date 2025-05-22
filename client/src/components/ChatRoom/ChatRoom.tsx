@@ -82,7 +82,9 @@ const ChatRoom = () => {
                   : users.find((u) => u.id === msg.senderId)?.username ||
                     '알 수 없음'}
               </S.MessageSender>
-              <S.MessageContent>{msg.content}</S.MessageContent>
+              <S.MessageContent isMine={msg.senderId === userId}>
+                {msg.content}
+              </S.MessageContent>
               <S.MessageTime>{formatTime(msg.timestamp)}</S.MessageTime>
             </S.MessageItem>
           ))}
