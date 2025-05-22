@@ -6,8 +6,8 @@ import Login from '@/components/Login/Login';
 function App() {
   return (
     <Routes>
-      <Route path='/' element={<Login />} />
-      <Route path='/signup' element={<SignUp />} />
+      <Route path='/' element={<SignUp />} />
+      <Route path='/login' element={<Login />} />
       <Route path='/chat' element={<ChatRoom />} />
     </Routes>
   );
