@@ -1,54 +1,29 @@
-import { useState } from 'react';
-import Form from '../Form/Form';
-import { API_BASE_URL } from '../../constants/apiUrl';
+import AuthForm from '../Form/AuthForm';
+import { login } from '@/api/auth';
+import { useAuthStore } from '@/store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
 
-interface User {
-  id?: string;
-  username: string;
-  password?: string;
-}
-
 const Login = () => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const navigate = useNavigate();
+  const setAccessToken = useAuthStore((state) => state.setAccessToken);
 
-  const handleLogin = async (user: User) => {
+  const handleLogin = async (data: { username: string; password: string }) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(user),
-      });
+      const token = await login(data);
+      setAccessToken(token);
 
-      const data = await response.json();
+      // 쿠키에도 수동 저장 (서버에서 Set-Cookie로 안 넣어줄 경우 대비)
+      document.cookie = `access_token=${token}; path=/;`;
 
-      console.log('로그인 응답:', data);
-
-      if (response.ok) {
-        const { id, username } = data;
-        sessionStorage.setItem('userId', id);
-        sessionStorage.setItem('username', username);
-        setCurrentUser({ id, username });
-        navigate('/chat');
-      } else {
-        console.error('로그인 실패:', data);
-      }
+      alert('로그인에 성공했습니다.');
+      navigate('/'); // 로그인 성공 후 이동할 페이지로 설정
     } catch (error) {
       console.error('로그인 실패:', error);
       alert('로그인에 실패했습니다. 다시 시도해주세요.');
     }
   };
 
-  const handleLogout = () => {
-    sessionStorage.removeItem('userId');
-    sessionStorage.removeItem('username');
-    setCurrentUser(null);
-  };
-
-  return <Form buttonText='로그인' onSubmit={handleLogin} />;
+  return <AuthForm mode='login' onSubmit={handleLogin} />;
 };
 
 export default Login;
