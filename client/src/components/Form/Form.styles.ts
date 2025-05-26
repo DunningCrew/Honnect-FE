@@ -10,6 +10,10 @@ export const Container = styled.div`
 `;
 
 export const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
   width: 100%;
   max-width: 400px;
   padding: 2rem;
@@ -19,18 +23,20 @@ export const Form = styled.form`
 `;
 
 export const FormGroup = styled.div`
+  align-items: center;
   margin-bottom: 1.5rem;
 `;
 
 export const Label = styled.label`
   display: block;
   margin-bottom: 0.5rem;
-  font-weight: 500;
+  font-size: 0.8rem;
+  font-weight: 400;
   color: #333;
 `;
 
 export const Input = styled.input`
-  width: 100%;
+  width: fit-content;
   padding: 0.75rem;
   border: 1px solid #ddd;
   border-radius: 4px;
@@ -38,8 +44,7 @@ export const Input = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #4a90e2;
-    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+    border-color: #fc6a03;
   }
 `;
 
@@ -47,7 +52,7 @@ export const Button = styled.button`
   width: 100%;
   max-width: 200px;
   padding: 0.75rem;
-  background-color: #4a90e2;
+  background-color: #fc6a03;
   color: white;
   border: none;
   border-radius: 4px;
@@ -59,10 +64,10 @@ export const Button = styled.button`
   margin: 0 auto;
 
   &:hover {
-    background-color: #357abd;
+    background-color: #c95b0c;
   }
 
   &:active {
-    background-color: #2a5f94;
+    background-color: #fc6a03;
   }
 `;

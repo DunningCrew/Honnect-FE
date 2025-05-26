@@ -20,7 +20,7 @@ export const WelcomeMessage = styled.div`
   left: 20px;
   padding: 8px 16px;
   background-color: #e3f2fd;
-  color: #1976d2;
+  color: #fc6a03;
   border-radius: 4px;
   font-size: 1rem;
   z-index: 1000;
