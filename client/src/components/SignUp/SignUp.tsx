@@ -10,7 +10,7 @@ interface SignUpUser {
 const SignUp = () => {
   const handleSignUp = async (user: SignUpUser) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/users`, {
+      const response = await fetch(`${API_BASE_URL}/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -23,14 +23,12 @@ const SignUp = () => {
       console.log('회원가입 응답:', data);
 
       if (!response.ok) {
-        throw new Error(data.error || '사용자 등록에 실패했습니다.');
+        throw new Error(data.error || '회원가입에 실패했습니다.');
       }
-
-      // handleLogin(data);
     } catch (error) {
-      console.error('사용자 등록 실패:', error);
+      console.error('회원가입 실패:', error);
       alert(
-        error instanceof Error ? error.message : '사용자 등록에 실패했습니다.',
+        error instanceof Error ? error.message : '회원가입에 실패했습니다.',
       );
     }
   };
