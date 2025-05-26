@@ -1,25 +1,22 @@
 import styled from 'styled-components';
 
-export const Container = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background-color: #f5f5f5;
-  padding: 20px;
-`;
-
-export const Form = styled.form`
+export const Container = styled.form`
   display: flex;
   flex-direction: column;
-  align-items: center;
+  width: 320px;
+  margin: 60px auto;
+  padding: 30px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+`;
 
-  width: 100%;
-  max-width: 400px;
-  padding: 2rem;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+export const Title = styled.h2`
+  text-align: center;
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: #333;
 `;
 
 export const FormGroup = styled.div`
@@ -36,11 +33,11 @@ export const Label = styled.label`
 `;
 
 export const Input = styled.input`
-  width: fit-content;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
+  padding: 12px;
+  font-size: 14px;
+  margin-bottom: 14px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
 
   &:focus {
     outline: none;
@@ -49,19 +46,16 @@ export const Input = styled.input`
 `;
 
 export const Button = styled.button`
-  width: 100%;
-  max-width: 200px;
-  padding: 0.75rem;
+  margin-top: 10px;
+  padding: 12px;
+  font-size: 15px;
+  font-weight: bold;
   background-color: #fc6a03;
-  color: white;
+  color: #fff;
   border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-  font-weight: 500;
+  border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.2s;
-  display: block;
-  margin: 0 auto;
 
   &:hover {
     background-color: #c95b0c;
