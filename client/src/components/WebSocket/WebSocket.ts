@@ -9,14 +9,20 @@ export interface ChatMessage {
   timestamp: number;
 }
 
-const WebSocketClient = () => {
+interface UserWebSocketClientProps {
+  targetUserId: string;
+}
+
+const WebSocketClient = ({ targetUserId }: UserWebSocketClientProps) => {
   const client = useRef<Client | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     const userId = sessionStorage.getItem('userId');
-    if (!userId) return;
+    if (!userId || !targetUserId) return;
+
+    const chatPath = `/chat/${[userId, targetUserId].sort().join('-')}`;
 
     const stompClient = new Client({
       webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
@@ -32,7 +38,7 @@ const WebSocketClient = () => {
       onConnect: () => {
         setIsConnected(true);
 
-        stompClient.subscribe('/topic/chat/message', (message: IMessage) => {
+        stompClient.subscribe(chatPath, (message: IMessage) => {
           try {
             if (!message || !message.body) {
               console.warn('⚠️ message 또는 body 없음');
@@ -65,7 +71,7 @@ const WebSocketClient = () => {
         setIsConnected(false);
       }
     };
-  }, []);
+  }, [targetUserId]);
 
   const sendMessage = (content: string) => {
     if (!client.current || !client.current.connected) {
@@ -74,6 +80,7 @@ const WebSocketClient = () => {
     }
 
     const userId = sessionStorage.getItem('userId') || '';
+    const chatPath = `/chat/${[userId, targetUserId].sort().join('-')}`;
     const message: ChatMessage = {
       senderId: userId,
       content,
@@ -81,7 +88,7 @@ const WebSocketClient = () => {
     };
 
     client.current.publish({
-      destination: '/topic/chat/message',
+      destination: chatPath,
       body: JSON.stringify(message),
       headers: { 'content-type': 'application/json' },
     });

@@ -136,7 +136,13 @@ sockjs.on("connection", (conn) => {
           const [key, value] = header.split(":");
           headerMap[key] = value;
         }
-        const destination = headerMap["destination"];
+        let destination = headerMap["destination"];
+        if (destination && destination.startsWith("/chat/")) {
+          const ids = destination.replace("/chat/", "").split("-");
+          if (ids.length === 2) {
+            destination = `/chat/${ids.sort().join("-")}`;
+          }
+        }
         if (!destination) return;
         if (!subscriptions.has(destination)) {
           subscriptions.set(destination, new Set());
@@ -156,7 +162,13 @@ sockjs.on("connection", (conn) => {
           const [key, value] = headers[i].split(":");
           headerMap[key] = value;
         }
-        const destination = headerMap["destination"];
+        let destination = headerMap["destination"];
+        if (destination && destination.startsWith("/chat/")) {
+          const ids = destination.replace("/chat/", "").split("-");
+          if (ids.length === 2) {
+            destination = `/chat/${ids.sort().join("-")}`;
+          }
+        }
         const messageBody = lines
           .slice(bodyStartIndex)
           .join("\n")
@@ -170,7 +182,7 @@ sockjs.on("connection", (conn) => {
             "MESSAGE\n" +
             `destination:${destination}\n` +
             `message-id:${Date.now()}\n` +
-            `subscription:sub-0\n` + // ✅ 추가: 구독 ID와 매칭
+            `subscription:sub-0\n` +
             "content-type:application/json\n\n" +
             JSON.stringify(messageWithSender) +
             "\0";
