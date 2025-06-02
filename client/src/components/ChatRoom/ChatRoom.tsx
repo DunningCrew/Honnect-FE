@@ -13,7 +13,12 @@ const ChatRoom = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { sendMessage, messages, isConnected } = WebSocketClient();
+  const [targetUserId, setTargetUserId] = useState<string | null>(null);
+  const userId = sessionStorage.getItem('userId');
+
+  const { sendMessage, messages, isConnected } = WebSocketClient(
+    targetUserId ? { targetUserId } : { targetUserId: '' },
+  );
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -52,8 +57,6 @@ const ChatRoom = () => {
     return new Date(timestamp).toLocaleTimeString();
   };
 
-  const userId = sessionStorage.getItem('userId');
-
   return (
     <S.ChatContainer>
       <S.UserList>
@@ -66,29 +69,46 @@ const ChatRoom = () => {
         ) : error ? (
           <S.ErrorMessage>{error}</S.ErrorMessage>
         ) : (
-          users.map((user) => (
-            <S.UserItem key={user.id}>{user.username}</S.UserItem>
-          ))
+          users
+            .filter((user) => user.id !== userId)
+            .map((user) => (
+              <S.UserItem
+                key={user.id}
+                onClick={() => setTargetUserId(user.id)}
+                style={{
+                  cursor: 'pointer',
+                  fontWeight: targetUserId === user.id ? 'bold' : 'normal',
+                  background:
+                    targetUserId === user.id ? '#e0e0e0' : 'transparent',
+                }}
+              >
+                {user.username}
+              </S.UserItem>
+            ))
         )}
       </S.UserList>
 
       <S.ChatArea>
-        <S.MessageList>
-          {messages.map((msg, index) => (
-            <S.MessageItem key={index} isMine={msg.senderId === userId}>
-              <S.MessageSender>
-                {msg.senderId === userId
-                  ? '나'
-                  : users.find((u) => u.id === msg.senderId)?.username ||
-                    '알 수 없음'}
-              </S.MessageSender>
-              <S.MessageContent isMine={msg.senderId === userId}>
-                {msg.content}
-              </S.MessageContent>
-              <S.MessageTime>{formatTime(msg.timestamp)}</S.MessageTime>
-            </S.MessageItem>
-          ))}
-        </S.MessageList>
+        {targetUserId ? (
+          <S.MessageList>
+            {messages.map((msg, index) => (
+              <S.MessageItem key={index} isMine={msg.senderId === userId}>
+                <S.MessageSender>
+                  {msg.senderId === userId
+                    ? '나'
+                    : users.find((u) => u.id === msg.senderId)?.username ||
+                      '알 수 없음'}
+                </S.MessageSender>
+                <S.MessageContent isMine={msg.senderId === userId}>
+                  {msg.content}
+                </S.MessageContent>
+                <S.MessageTime>{formatTime(msg.timestamp)}</S.MessageTime>
+              </S.MessageItem>
+            ))}
+          </S.MessageList>
+        ) : (
+          <S.LoadingMessage>상대방을 선택하세요.</S.LoadingMessage>
+        )}
         <S.InputArea>
           <input
             type='text'
@@ -96,9 +116,12 @@ const ChatRoom = () => {
             onChange={(e) => setMessage(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
             placeholder='메시지를 입력하세요'
-            disabled={!isConnected}
+            disabled={!isConnected || !targetUserId}
           />
-          <button onClick={handleSendMessage} disabled={!isConnected}>
+          <button
+            onClick={handleSendMessage}
+            disabled={!isConnected || !targetUserId}
+          >
             전송
           </button>
         </S.InputArea>
